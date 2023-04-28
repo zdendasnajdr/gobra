@@ -14,7 +14,7 @@ class SlicesImpl(val arrays : Arrays) extends Slices {
   private val typeVar : vpr.TypeVar = vpr.TypeVar("T")
   private val domainType: vpr.DomainType = vpr.DomainType(domainName, Map[vpr.TypeVar, vpr.Type](typeVar -> typeVar))(Seq(typeVar))
 
-  private lazy val sadd_func = sadd_func_def()
+  // private lazy val sadd_func = sadd_func_def()
 
   /**
     * Determines whether the "Slice" Viper domain
@@ -27,23 +27,25 @@ class SlicesImpl(val arrays : Arrays) extends Slices {
     * function sarray(s : Slice[T]) : ShArray[T]
     * }}}
     */
+    /*
   private lazy val sarray_func : vpr.DomainFunc = vpr.DomainFunc(
     "sarray",
     Seq(vpr.LocalVarDecl("s", domainType)()),
     arrays.typ(typeVar)
   )(domainName = domainName)
-
+     */
   /**
     * {{{
     * function soffset(s : Slice[T]) : Int
     * }}}
     */
+    /*
   private lazy val soffset_func : vpr.DomainFunc = vpr.DomainFunc(
     "soffset",
     Seq(vpr.LocalVarDecl("s", domainType)()),
     vpr.Int
   )(domainName = domainName)
-
+*/
   /**
     * {{{
     * function slen(s : Slice[T]) : Int
@@ -71,12 +73,13 @@ class SlicesImpl(val arrays : Arrays) extends Slices {
     * function smake(arr: Array[T], offset: Int, len: Int, cap: Int): Slice[T]
     * }}}
     */
+    /*
   private lazy val smake_func : vpr.DomainFunc = vpr.DomainFunc(
     "smake",
     Seq(vpr.LocalVarDecl("a", arrays.typ(typeVar))(), vpr.LocalVarDecl("o", vpr.Int)(), vpr.LocalVarDecl("l", vpr.Int)(), vpr.LocalVarDecl("c", vpr.Int)()),
     domainType
   )(domainName = domainName)
-
+*/
   /**
     * {{{
     * axiom slice_offset_nonneg {
@@ -84,6 +87,7 @@ class SlicesImpl(val arrays : Arrays) extends Slices {
     * }
     * }}}
     */
+    /*
   private lazy val slice_offset_nonneg_axiom : vpr.DomainAxiom = {
     val sDecl = vpr.LocalVarDecl("s", domainType)()
     val exp = offset(sDecl.localVar)()
@@ -96,6 +100,8 @@ class SlicesImpl(val arrays : Arrays) extends Slices {
       )()
     )(domainName = domainName)
   }
+
+     */
 
   /**
     * {{{
@@ -146,6 +152,7 @@ class SlicesImpl(val arrays : Arrays) extends Slices {
     * }
     * }}}
     */
+    /*
   private lazy val slice_cap_leq_alen_axiom : vpr.DomainAxiom = {
     val sDecl = vpr.LocalVarDecl("s", domainType)()
     val soffset = offset(sDecl.localVar)()
@@ -160,6 +167,8 @@ class SlicesImpl(val arrays : Arrays) extends Slices {
       )()
     )(domainName = domainName)
   }
+
+     */
 
   /**
     * {{{
@@ -184,6 +193,7 @@ class SlicesImpl(val arrays : Arrays) extends Slices {
     * }
     * }}}
     */
+    /*
   private lazy val slice_deconstructors_over_constructor: Vector[vpr.DomainAxiom] = {
     val arrDecl = vpr.LocalVarDecl("a", arrays.typ(typeVar))(); val arr = arrDecl.localVar
     val offDecl = vpr.LocalVarDecl("o", vpr.Int)(); val off = offDecl.localVar
@@ -242,6 +252,8 @@ class SlicesImpl(val arrays : Arrays) extends Slices {
     Vector(axiom1, axiom2, axiom3, axiom4)
   }
 
+     */
+
   /**
     * {{{
     * axiom slice_constructor_over_deconstructor {
@@ -250,6 +262,7 @@ class SlicesImpl(val arrays : Arrays) extends Slices {
     * }
     * }}}
     */
+    /*
   private lazy val slice_constructor_over_deconstructor : vpr.DomainAxiom = {
     val sDecl = vpr.LocalVarDecl("s", domainType)(); val s = sDecl.localVar
 
@@ -267,6 +280,8 @@ class SlicesImpl(val arrays : Arrays) extends Slices {
     )(domainName = domainName)
   }
 
+     */
+
   /**
     * Definition of the following auxiliary Viper function,
     * used to improve verification with the `loc` function:
@@ -279,6 +294,7 @@ class SlicesImpl(val arrays : Arrays) extends Slices {
     * }
     * }}}
     */
+    /*
   private def sadd_func_def() : vpr.Function = {
     val lDecl = vpr.LocalVarDecl("left", vpr.Int)()
     val rDecl = vpr.LocalVarDecl("right", vpr.Int)()
@@ -287,18 +303,13 @@ class SlicesImpl(val arrays : Arrays) extends Slices {
     vpr.Function("sadd", Seq(lDecl, rDecl), vpr.Int, Seq(), Seq(post), Some(body))()
   }
 
+     */
+
   /**
     * {{{
     * domain Slice[T] {
-    *   function sarray(s : Slice[T]) : ShArray[T]
-    *   function soffset(s : Slice[T]) : Int
     *   function slen(s : Slice[T]) : Int
     *   function scap(s : Slice[T]) : Int
-    *   function smake(arr: Array[T], offset: Int, len: Int, cap: Int): Slice[T]
-    *
-    *   axiom slice_offset_nonneg {
-    *     forall s : Slice[T] :: { soffset(s) } 0 <= soffset(s)
-    *   }
     *
     *   axiom slice_len_nonneg {
     *     forall s : Slice[T] :: { slen(s) } 0 <= slen(s)
@@ -307,55 +318,27 @@ class SlicesImpl(val arrays : Arrays) extends Slices {
     *   axiom slice_len_leq_cap {
     *     forall s : Slice[T] :: { slen(s) } { scap(s) } slen(s) <= scap(s)
     *   }
-    *
-    *   axiom slice_cap_leq_alen {
-    *     forall s : Slice[T] :: { soffset(s), scap(s) } { alen(sarray(s)) }
-    *       soffset(s) + scap(s) <= alen(sarray(s))
-    *   }
-    *
-    *   axiom slice_deconstructor_over_constructor_array {
-    *     forall arr, off, len, cap :: { sarray(smake(arr,off,len,cap)) }
-    *       0 <= off && 0 <= len && len <= cap && off + cap <= alen(arr) ==> sarray(smake(arr,off,len,cap)) == arr
-    *   }
-    *
-    *   axiom slice_deconstructor_over_constructor_offset {
-    *     forall arr, off, len, cap :: { soffset(smake(arr,off,len,cap)) }
-    *       0 <= off && 0 <= len && len <= cap && off + cap <= alen(arr) ==> soffset(smake(arr,off,len,cap)) == off
-    *   }
-    *
-    *   axiom slice_deconstructor_over_constructor_len {
-    *     forall arr, off, len, cap :: { slen(smake(arr,off,len,cap)) }
-    *       0 <= off && 0 <= len && len <= cap && off + cap <= alen(arr) ==> slen(smake(arr,off,len,cap)) == len
-    *   }
-    *
-    *   axiom slice_deconstructor_over_constructor_cap {
-    *     forall arr, off, len, cap :: { slen(smake(arr,off,len,cap)) }
-    *       0 <= off && 0 <= len && len <= cap && off + cap <= alen(arr) ==> scap(smake(arr,off,len,cap)) == cap
-    *   }
-    *
-    *   axiom slice_constructor_over_deconstructor {
-    *     forall s :: { sarray(s) }{ soffset(s) }{ slen(s) }{ scap(s) }
-    *       s == smake(sarray(s), soffset(s), slen(s), scap(s))
-    *   }
     * }
     * }}}
     */
   private lazy val domain : vpr.Domain = vpr.Domain(
     domainName,
-    Seq(sarray_func, soffset_func, slen_func, scap_func, smake_func),
-    slice_offset_nonneg_axiom +: slice_len_nonneg_axiom +:
-      slice_len_leq_cap_axiom +: slice_cap_leq_alen_axiom +:
-      slice_constructor_over_deconstructor +: slice_deconstructors_over_constructor,
+    Seq(slen_func, scap_func),
+    slice_len_nonneg_axiom +: slice_len_leq_cap_axiom,
     Seq(typeVar)
   )()
 
   /** A function application of "sadd". */
+    /*
   private def add(left : vpr.Exp, right : vpr.Exp)(pos : vpr.Position, info : vpr.Info, errT : vpr.ErrorTrafo) : vpr.FuncApp = {
     generateDomain = true
     vpr.FuncApp(sadd_func.name, Seq(left, right))(pos, info, vpr.Int, errT)
   }
 
+     */
+
   /** A function application of "sarray". */
+    /*
   override def array(exp : vpr.Exp)(pos : vpr.Position, info : vpr.Info, errT : vpr.ErrorTrafo) : vpr.DomainFuncApp = {
     generateDomain = true
     vpr.DomainFuncApp(
@@ -364,6 +347,8 @@ class SlicesImpl(val arrays : Arrays) extends Slices {
       typVarMap = exp.typ.asInstanceOf[vpr.DomainType].typVarsMap
     )(pos, info, errT)
   }
+
+     */
 
   /** A function application of "scap". */
   override def cap(exp : vpr.Exp)(pos : vpr.Position, info : vpr.Info, errT : vpr.ErrorTrafo) : vpr.DomainFuncApp = {
@@ -386,6 +371,7 @@ class SlicesImpl(val arrays : Arrays) extends Slices {
   }
 
   /** A function application of "soffset". */
+    /*
   override def offset(exp : vpr.Exp)(pos : vpr.Position, info : vpr.Info, errT : vpr.ErrorTrafo) : vpr.DomainFuncApp = {
     generateDomain = true
     vpr.DomainFuncApp(
@@ -394,6 +380,8 @@ class SlicesImpl(val arrays : Arrays) extends Slices {
       typVarMap = exp.typ.asInstanceOf[vpr.DomainType].typVarsMap
     )(pos, info, errT)
   }
+
+     */
 
   /**
     * A function application of the "sloc" function.
@@ -406,6 +394,7 @@ class SlicesImpl(val arrays : Arrays) extends Slices {
   }
 
   /** A function application of "smake". */
+    /*
   def make(arr: vpr.Exp, off: vpr.Exp, len: vpr.Exp, cap: vpr.Exp)(pos: vpr.Position = vpr.NoPosition, info: vpr.Info = vpr.NoInfo, errT: vpr.ErrorTrafo = vpr.NoTrafos) : vpr.DomainFuncApp = {
     generateDomain = true
     vpr.DomainFuncApp(
@@ -414,6 +403,8 @@ class SlicesImpl(val arrays : Arrays) extends Slices {
       typVarMap = arr.typ.asInstanceOf[vpr.DomainType].typVarsMap
     )(pos, info, errT)
   }
+
+     */
 
   /** Yields the Viper domain type of slices. */
   def typ(t : vpr.Type) : vpr.DomainType = {
@@ -424,7 +415,7 @@ class SlicesImpl(val arrays : Arrays) extends Slices {
   override def finalize(addMemberFn: vpr.Member => Unit) : Unit = {
     if (generateDomain) {
       addMemberFn(domain)
-      addMemberFn(sadd_func)
+      // addMemberFn(sadd_func)
     }
   }
 }
