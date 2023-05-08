@@ -147,6 +147,27 @@ class ArrayEncoding extends TypeEncoding with SharedArrayEmbedding {
           vRhs <- ctx.expression(rhs)
         } yield withSrc(vpr.EqCmp(vLhs, vRhs), src)
       }
+
+    /**
+     * This new case for slice and array was added
+     */
+    case (lhs :: in.SliceT(typeParam, _), rhs :: ctx.Array(len, _), src) =>
+      val (pos, info, errT) = lhs.vprMeta
+      val sliceT = in.SliceT(typeParam.withAddressability(Shared), Addressability.Exclusive)
+      for {
+        vS <- ctx.expression(lhs)
+        x = in.LocalVar(ctx.freshNames.next(), sliceT)(lhs.info)
+        vX = ctx.variable(x)
+        _ <- local(vX)
+        _ <- bind(vX.localVar, vS)
+        xTrigger = (vIdx: vpr.LocalVar) => Seq(vpr.Trigger(Seq(ctx.slice.loc(vX.localVar, vIdx)(pos, info, errT)))(pos, info, errT))
+
+        (y, yTrigger) <- copyArray(rhs)(ctx)
+        typLhs = underlyingType(lhs.typ)(ctx)
+        typRhs = underlyingType(rhs.typ)(ctx)
+        body = (idx: in.BoundVar) => ctx.equal(in.IndexedExp(x, idx, typLhs)(src.info), in.IndexedExp(y, idx, typRhs)(src.info))(src)
+        res <- boundedQuant(len, idx => xTrigger(idx) ++ yTrigger(idx), body)(src)(ctx)
+      } yield res
   }
 
   /**

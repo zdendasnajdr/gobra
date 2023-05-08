@@ -31,12 +31,14 @@ class SliceEncoding(arrayEmb : SharedArrayEmbedding) extends LeafTypeEncoding {
   import viper.gobra.translator.util.{ViperUtil => vu}
 
   override def finalize(addMemberFn: vpr.Member => Unit) : Unit = {
+    /*
     constructGenerator.finalize(addMemberFn)
     fullSliceFromArrayGenerator.finalize(addMemberFn)
     fullSliceFromSliceGenerator.finalize(addMemberFn)
     sliceFromArrayGenerator.finalize(addMemberFn)
-    sliceFromSliceGenerator.finalize(addMemberFn)
+    sliceFromSliceGenerator.finalize(addMemberFn) */
     nilSliceGenerator.finalize(addMemberFn)
+
   }
 
   /**
@@ -193,26 +195,66 @@ class SliceEncoding(arrayEmb : SharedArrayEmbedding) extends LeafTypeEncoding {
           } yield ass
         )
 
+      /**
+       * The original version:
+       * case lit: in.NewSliceLit =>
+       *    val (pos, info, errT) = lit.vprMeta
+       *    val litA = lit.asArrayLit
+       *    val tmp = in.LocalVar(ctx.freshNames.next(), litA.typ.withAddressability(Addressability.pointerBase))(lit.info)
+       *    val tmpT = ctx.variable(tmp)
+       *    val underlyingTyp = underlyingType(lit.typ)(ctx)
+       *      for {
+       *        _ <- local(tmpT)
+       *        initT <- ctx.allocation(tmp)
+       *        _ <- write(initT)
+       *        eq <- ctx.equal(tmp, litA)(lit)
+       *        inhale = vpr.Inhale(eq)(pos, info, errT)
+       *        _ <- write(inhale)
+       *        ass <- ctx.assignment(
+       *          in.Assignee.Var(lit.target),
+       *          in.Slice(tmp, in.IntLit(0)(lit.info), in.IntLit(litA.length)(lit.info), None, underlyingTyp)(lit.info)
+       *        )(lit)
+       *      } yield ass
+       */
       case lit: in.NewSliceLit =>
         val (pos, info, errT) = lit.vprMeta
         val litA = lit.asArrayLit
-        val tmp = in.LocalVar(ctx.freshNames.next(), litA.typ.withAddressability(Addressability.pointerBase))(lit.info)
-        val tmpT = ctx.variable(tmp)
-        val underlyingTyp = underlyingType(lit.typ)(ctx)
+        val litMemberType = lit.memberType
+        val sliceT = in.SliceT(litMemberType.withAddressability(Shared), Addressability.Exclusive)
+        val slice = in.LocalVar(ctx.freshNames.next(), sliceT)(lit.info)
+        val vprSlice = ctx.variable(slice)
+        val vprLength = in.IntLit(litA.length)(lit.info)
         for {
-          _ <- local(tmpT)
-          initT <- ctx.allocation(tmp)
-          _ <- write(initT)
-          eq <- ctx.equal(tmp, litA)(lit)
+          _ <- local(vprSlice)
+
+          // inhale forall i: int :: {loc(a, i)} 0 <= i && i < [cap] ==> Footprint[ a[i] ]
+          footprintAssertion <- getCellPerms(ctx)(slice, in.FullPerm(slice.info), SliceBound.Cap)
+          _ <- write(vpr.Inhale(footprintAssertion)(pos, info, errT))
+
+          lenExpr = in.Length(slice)(lit.info)
+          capExpr = in.Capacity(slice)(lit.info)
+
+          // inhale cap(a) == [cap]
+          eqCap <- ctx.equal(capExpr, vprLength)(lit)
+          _ <- write(vpr.Inhale(eqCap)(pos, info, errT))
+
+          // inhale len(a) == [len]
+          eqLen <- ctx.equal(lenExpr, vprLength)(lit)
+          _ <- write(vpr.Inhale(eqLen)(pos, info, errT))
+
+
+          eq <- ctx.equal(slice, litA)(lit)
           inhale = vpr.Inhale(eq)(pos, info, errT)
           _ <- write(inhale)
+
           ass <- ctx.assignment(
             in.Assignee.Var(lit.target),
-            in.Slice(tmp, in.IntLit(0)(lit.info), in.IntLit(litA.length)(lit.info), None, underlyingTyp)(lit.info)
+            slice
           )(lit)
         } yield ass
       }
     }
+
 
   /**
     * Obtains permission to all cells of a slice
@@ -641,10 +683,10 @@ class SliceEncoding(arrayEmb : SharedArrayEmbedding) extends LeafTypeEncoding {
 
       // postconditions
       val result = vpr.Result(sliceTypT)()
-      val post1 = vpr.EqCmp(ctx.slice.offset(result)(), vpr.IntLit(0)())()
+      // val post1 = vpr.EqCmp(ctx.slice.offset(result)(), vpr.IntLit(0)())()
       val post2 = vpr.EqCmp(ctx.slice.len(result)(), vpr.IntLit(0)())()
       val post3 = vpr.EqCmp(ctx.slice.cap(result)(), vpr.IntLit(0)())()
-      val post4 = vpr.EqCmp(ctx.slice.array(result)(), dfltArrayT)()
+      // val post4 = vpr.EqCmp(ctx.slice.array(result)(), dfltArrayT)()
 
       // function body
       val body: vpr.FuncApp = construct(
@@ -660,7 +702,7 @@ class SliceEncoding(arrayEmb : SharedArrayEmbedding) extends LeafTypeEncoding {
         Seq(),
         sliceTypT,
         Seq(pre1),
-        Seq(post1, post2, post3, post4),
+        Seq(post2, post3),
         if (generateFunctionBodies) Some(body) else None
       )()
     }
