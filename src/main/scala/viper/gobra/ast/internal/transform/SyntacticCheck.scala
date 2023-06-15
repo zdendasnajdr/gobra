@@ -7,8 +7,6 @@
 package viper.gobra.ast.internal.transform
 
 import viper.gobra.ast.{internal => in}
-import viper.gobra.translator.Names
-import viper.gobra.util.Violation
 
 /**
   * Transformation responsible for generating call-graph edges from interface methods to their implementations' methods.
@@ -20,7 +18,54 @@ object SyntacticCheck extends InternalTransform {
   /**
     * Program-to-program transformation
     */
-  override def transform(p: in.Program): in.Program = {
+  override def transform(p: in.Program): in.Program = p match {
+    case in.Program(_, members, _) =>
+
+      def checkBody(m: in.Member): Unit = m match {
+        case m: in.Function =>
+          m.body match {
+            case Some(in.MethodBody(_, seqn, _)) =>
+              seqn.stmts.foreach(
+                s => s.visit {
+                  case elem: in.Stmt =>
+                    if (checkStmt(elem)) {
+                      println("The function " + m.name + " contains subslicing expressions")
+                      return
+                    } else {}
+                  case _ =>
+              })
+              println("The function " + m.name + " does not contain subslicing expressions")
+            case _ => println("The function " + m.name + " does not contain subslicing expressions")
+          }
+        case _ =>
+      }
+
+      /*
+      Checks the expressions for subslicing expressions
+       */
+      def checkExpr(e: in.Expr): Boolean = {
+        var slice = false
+        e.visit {
+          case elem: in.Slice => slice = true
+          case _ =>
+        }
+        slice
+      }
+
+      /*
+      Checks the statements for subslicing expressions
+       */
+      def checkStmt(s: in.Stmt): Boolean = s match {
+        case s: in.If => checkExpr(s.cond) || checkStmt(s.thn) || checkStmt(s.els)
+        case s: in.While =>  checkExpr(s.cond) || checkStmt(s.body)
+        case s: in.SingleAss => checkExpr(s.right)
+        case s: in.FunctionCall => s.args.exists(e => checkExpr(e))
+        case s: in.MethodCall => s.args.exists(e => checkExpr(e))
+        case _ => false
+      }
+
+      members.foreach(checkBody)
+
     in.Program(
       types = p.types,
       members = p.members,

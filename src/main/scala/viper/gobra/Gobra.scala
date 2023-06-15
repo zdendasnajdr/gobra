@@ -282,7 +282,7 @@ class Gobra extends GoVerifier with GoIdeVerifier {
     // constant propagation does not cause duplication of verification errors caused
     // by overflow checks (if enabled) because all overflows in constant declarations 
     // can be found by the well-formedness checks.
-    var transformations: Vector[InternalTransform] = Vector(CGEdgesTerminationTransform, ConstantPropagation, SyntacticCheck)
+    var transformations: Vector[InternalTransform] = Vector(SyntacticCheck, CGEdgesTerminationTransform, ConstantPropagation)
     if (config.checkOverflows) {
       transformations :+= OverflowChecksTransform
     }
