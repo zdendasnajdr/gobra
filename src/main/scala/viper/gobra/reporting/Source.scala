@@ -7,7 +7,6 @@
 package viper.gobra.reporting
 
 import java.nio.file.Paths
-
 import viper.silver.ast.SourcePosition
 import viper.silver.{ast => vpr}
 import viper.gobra.ast.{frontend, internal}
@@ -30,9 +29,11 @@ object Source {
   case object ImportPreNotEstablished extends Annotation
   case object MainPreNotEstablished extends Annotation
   case object LoopInvariantNotEstablishedAnnotation extends Annotation
+  case object SlicingExpressionAnnotation extends Annotation
   case class NoPermissionToRangeExpressionAnnotation() extends Annotation
   case class InsufficientPermissionToRangeExpressionAnnotation() extends Annotation
   case class AutoImplProofAnnotation(subT: String, superT: String) extends Annotation
+
 
   object Parser {
 

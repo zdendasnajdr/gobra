@@ -7,6 +7,10 @@
 package viper.gobra.ast.internal.transform
 
 import viper.gobra.ast.{internal => in}
+import viper.gobra.reporting.Source
+import viper.gobra.reporting.Source.SlicingExpressionAnnotation
+import viper.gobra.reporting.Source.Parser.Single
+import viper.gobra.util.Violation.violation
 
 /**
   * Transformation responsible for generating call-graph edges from interface methods to their implementations' methods.
@@ -30,6 +34,7 @@ object SyntacticCheck extends InternalTransform {
                   case elem: in.Stmt =>
                     if (checkStmt(elem)) {
                       println("The function " + m.name + " contains subslicing expressions")
+                      m.withInfo(createAnnotatedInfo(m.info))
                       return
                     } else {}
                   case _ =>
@@ -63,6 +68,12 @@ object SyntacticCheck extends InternalTransform {
         case s: in.MethodCall => s.args.exists(e => checkExpr(e))
         case _ => false
       }
+
+      def createAnnotatedInfo(info: Source.Parser.Info): Source.Parser.Info =
+        info match {
+          case s: Single => s.createAnnotatedInfo(SlicingExpressionAnnotation)
+          case i => violation(s"l.op.info ($i) is expected to be a Single")
+        }
 
       members.foreach(checkBody)
 
