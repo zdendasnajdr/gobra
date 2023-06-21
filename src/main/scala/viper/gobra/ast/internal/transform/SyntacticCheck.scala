@@ -45,19 +45,20 @@ object SyntacticCheck extends InternalTransform {
         case _ =>
       }
 
-      /*
+      /**
       Checks the expressions for subslicing expressions
        */
       def checkExpr(e: in.Expr): Boolean = {
         var slice = false
         e.visit {
-          case elem: in.Slice => slice = true
+          case in.Slice(_, _, _, _, _) => slice = true
           case _ =>
         }
+        println(e.toString)
         slice
       }
 
-      /*
+      /**
       Checks the statements for subslicing expressions
        */
       def checkStmt(s: in.Stmt): Boolean = s match {
@@ -75,12 +76,18 @@ object SyntacticCheck extends InternalTransform {
           case i => violation(s"l.op.info ($i) is expected to be a Single")
         }
 
+      //val newP = innerTransform(p)
       members.foreach(checkBody)
-
-    in.Program(
-      types = p.types,
-      members = p.members,
-      table = p.table,
-    )(p.info)
+      p
   }
+
+  private def innerTransform(p: in.Program): in.Program =
+      in.Program(
+        types = p.types,
+        members = p.members.map(member => member.transform {
+          case in.IndexedExp(in.Slice(sbase, low, _, _, _), index, baseUnderlyingType) =>
+            in.IndexedExp(sbase, in.Add(low, index)(member.info), baseUnderlyingType)(member.info)
+        }),
+        table = p.table,
+      )(p.info)
 }

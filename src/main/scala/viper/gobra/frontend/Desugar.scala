@@ -46,7 +46,15 @@ object Desugar {
     // combine all desugared results into one Viper program:
     val internalProgram = combine(mainDesugarer, mainDesugarer.packageD(pkg), importedPrograms)
     config.reporter report DesugaredMessage(config.packageInfoInputMap(pkg.info).map(_.name), () => internalProgram)
-    internalProgram
+    //internalProgram
+    in.Program(
+      types = internalProgram.types,
+      members = internalProgram.members.map(member => member.transform {
+        case in.IndexedExp(in.Slice(sbase, low, _, _, _), index, baseUnderlyingType) =>
+          in.IndexedExp(sbase, in.Add(low, index)(member.info), baseUnderlyingType)(member.info)
+      }),
+      table = internalProgram.table,
+    )(internalProgram.info)
   }
 
   private def combine(mainDesugarer: Desugarer, mainProgram: in.Program, imported: Iterable[(Desugarer, in.Program)]): in.Program = {
