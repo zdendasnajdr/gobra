@@ -79,13 +79,35 @@ class SlicesImpl(val arrays : Arrays) extends Slices {
 
   /**
     * {{{
-    * function smake(arr: Array[T], offset: Int, len: Int, cap: Int): Slice[T]
+    * function smake(len: Int, cap: Int): Slice[T]
     * }}}
     */
   private lazy val smake_func : vpr.DomainFunc = vpr.DomainFunc(
     "smake",
-    Seq(vpr.LocalVarDecl("a", arrays.typ(typeVar))(), vpr.LocalVarDecl("o", vpr.Int)(), vpr.LocalVarDecl("l", vpr.Int)(), vpr.LocalVarDecl("c", vpr.Int)()),
+    Seq(vpr.LocalVarDecl("l", vpr.Int)(), vpr.LocalVarDecl("c", vpr.Int)()),
     domainType
+  )(domainName = domainName)
+
+  /**
+   * {{{
+   *   function sfirst(r: T): Slice[T]
+   * }}}
+   */
+  private lazy val sfirst_func: vpr.DomainFunc = vpr.DomainFunc(
+    "sfirst",
+    Seq(vpr.LocalVarDecl("r", typeVar)()),
+    domainType
+  )(domainName = domainName)
+
+  /**
+   * {{{
+   *   function ssecond(r: T): Int
+   * }}}
+   */
+  private lazy val ssecond_func: vpr.DomainFunc = vpr.DomainFunc(
+    "ssecond",
+    Seq(vpr.LocalVarDecl("r", typeVar)()),
+    vpr.Int
   )(domainName = domainName)
 
   /**
@@ -201,49 +223,23 @@ class SlicesImpl(val arrays : Arrays) extends Slices {
     * }
     * }}}
     */
-    /*
   private lazy val slice_deconstructors_over_constructor: Vector[vpr.DomainAxiom] = {
-    val arrDecl = vpr.LocalVarDecl("a", arrays.typ(typeVar))(); val arr = arrDecl.localVar
-    val offDecl = vpr.LocalVarDecl("o", vpr.Int)(); val off = offDecl.localVar
     val lehDecl = vpr.LocalVarDecl("l", vpr.Int)(); val leh = lehDecl.localVar
     val cayDecl = vpr.LocalVarDecl("c", vpr.Int)(); val cay = cayDecl.localVar
 
-    val smake = make(arr,off,leh,cay)()
+    val smake = make(leh,cay)()
     val lhs = vpr.And(
-      vpr.LeCmp(vpr.IntLit(0)(), off)(), vpr.And(
-        vpr.LeCmp(vpr.IntLit(0)(), leh)(), vpr.And(
-          vpr.LeCmp(leh, cay)(),
-          vpr.LeCmp(vpr.Add(off,cay)(), arrays.len(arr)())())())())()
+        vpr.LeCmp(vpr.IntLit(0)(), leh)(), vpr.LeCmp(leh, cay)())()
 
-    val funcAppAxiom1 = array(smake)()
-    val funcAppAxiom2 = offset(smake)()
     val funcAppAxiom3 = len(smake)()
     val funcAppAxiom4 = cap(smake)()
-    val rhsAxiom1 = vpr.EqCmp(funcAppAxiom1, arr)()
-    val rhsAxiom2 = vpr.EqCmp(funcAppAxiom2, off)()
     val rhsAxiom3 = vpr.EqCmp(funcAppAxiom3, leh)()
     val rhsAxiom4 = vpr.EqCmp(funcAppAxiom4, cay)()
 
-    val axiom1 = vpr.NamedDomainAxiom(
-      "deconstructor_over_constructor_array",
-      vpr.Forall(
-        Seq(arrDecl, offDecl, lehDecl, cayDecl),
-        Seq(vpr.Trigger(Seq(funcAppAxiom1))()),
-        vpr.Implies(lhs, rhsAxiom1)()
-      )()
-    )(domainName = domainName)
-    val axiom2 = vpr.NamedDomainAxiom(
-      "deconstructor_over_constructor_offset",
-      vpr.Forall(
-        Seq(arrDecl, offDecl, lehDecl, cayDecl),
-        Seq(vpr.Trigger(Seq(funcAppAxiom2))()),
-        vpr.Implies(lhs, rhsAxiom2)()
-      )()
-    )(domainName = domainName)
     val axiom3 = vpr.NamedDomainAxiom(
       "deconstructor_over_constructor_len",
       vpr.Forall(
-        Seq(arrDecl, offDecl, lehDecl, cayDecl),
+        Seq(lehDecl, cayDecl),
         Seq(vpr.Trigger(Seq(funcAppAxiom3))()),
         vpr.Implies(lhs, rhsAxiom3)()
       )()
@@ -251,44 +247,67 @@ class SlicesImpl(val arrays : Arrays) extends Slices {
     val axiom4 = vpr.NamedDomainAxiom(
       "deconstructor_over_constructor_cap",
       vpr.Forall(
-        Seq(arrDecl, offDecl, lehDecl, cayDecl),
+        Seq(lehDecl, cayDecl),
         Seq(vpr.Trigger(Seq(funcAppAxiom4))()),
         vpr.Implies(lhs, rhsAxiom4)()
       )()
     )(domainName = domainName)
 
-    Vector(axiom1, axiom2, axiom3, axiom4)
+    Vector(axiom3, axiom4)
   }
-
-     */
 
   /**
     * {{{
     * axiom slice_constructor_over_deconstructor {
-    *   forall s :: { sarray(s) }{ soffset(s) }{ slen(s) }{ scap(s) }
-    *     s == smake(sarray(s), soffset(s), slen(s), scap(s))
+    *   forall s :: { slen(s) }{ scap(s) }
+    *     s == smake(slen(s), scap(s))
     * }
     * }}}
     */
-    /*
   private lazy val slice_constructor_over_deconstructor : vpr.DomainAxiom = {
     val sDecl = vpr.LocalVarDecl("s", domainType)(); val s = sDecl.localVar
 
-    val sarray = array(s)()
-    val soff = offset(s)()
     val slen = len(s)()
     val scap = cap(s)()
 
     vpr.AnonymousDomainAxiom(
       vpr.Forall(
         Seq(sDecl),
-        Seq(vpr.Trigger(Seq(sarray))(), vpr.Trigger(Seq(soff))(), vpr.Trigger(Seq(slen))(), vpr.Trigger(Seq(scap))()),
-        vpr.EqCmp(s, make(sarray, soff, slen, scap)())()
+        Seq(vpr.Trigger(Seq(slen))(), vpr.Trigger(Seq(scap))()),
+        vpr.EqCmp(s, make(slen, scap)())()
       )()
     )(domainName = domainName)
   }
 
-     */
+  /**
+   * {{{
+   *   axiom {
+   *     (forall s: Slice[T], i: Int :: { (sloc(s, i): T) }
+   *        0 <= i && i < (slen(s): Int) ==>
+   *        (sfirst((sloc(s, i): T)): Slice[T]) == s &&
+   *        (ssecond((sloc(s, i): T)): Int) == i)
+   *      }
+   * }}}
+   */
+  private lazy val sfirst_and_ssecond: vpr.DomainAxiom = {
+    val sDecl = vpr.LocalVarDecl("s", domainType)();
+    val iDecl = vpr.LocalVarDecl("i", vpr.Int)();
+    val i = iDecl.localVar
+    val s = sDecl.localVar
+
+    val sloc = loc(s, i)()
+
+    vpr.AnonymousDomainAxiom(
+      vpr.Forall(
+        Seq(sDecl, iDecl),
+        Seq(vpr.Trigger(Seq(sloc))()),
+        vpr.And(
+          vpr.EqCmp(first(sloc)(), s)(),
+          vpr.EqCmp(second(sloc)(), i)())()
+      )()
+    )(domainName = domainName)
+  }
+
 
   /**
     * Definition of the following auxiliary Viper function,
@@ -362,8 +381,12 @@ class SlicesImpl(val arrays : Arrays) extends Slices {
     */
   private lazy val domain : vpr.Domain = vpr.Domain(
     domainName,
-    Seq(slen_func, scap_func, sloc_func),
-    Seq(slice_len_nonneg_axiom, slice_len_leq_cap_axiom),
+    Seq(slen_func, scap_func, sloc_func, smake_func, sfirst_func, ssecond_func),
+      slice_len_nonneg_axiom +:
+      slice_len_leq_cap_axiom +:
+      sfirst_and_ssecond +:
+      slice_constructor_over_deconstructor +:
+      slice_deconstructors_over_constructor,
     Seq(typeVar)
   )()
 
@@ -417,6 +440,7 @@ class SlicesImpl(val arrays : Arrays) extends Slices {
     * A function application of the "sloc" function.
     */
   override def loc(base : vpr.Exp, index : vpr.Exp)(pos : vpr.Position, info : vpr.Info, errT : vpr.ErrorTrafo) : vpr.Exp = {
+    generateDomain = true
     vpr.DomainFuncApp(
       func = sloc_func,
       args = Seq(base, index),
@@ -425,12 +449,36 @@ class SlicesImpl(val arrays : Arrays) extends Slices {
   }
 
   /** A function application of "smake". */
-  def make(arr: vpr.Exp, off: vpr.Exp, len: vpr.Exp, cap: vpr.Exp)(pos: vpr.Position = vpr.NoPosition, info: vpr.Info = vpr.NoInfo, errT: vpr.ErrorTrafo = vpr.NoTrafos) : vpr.DomainFuncApp = {
+  def make(len: vpr.Exp, cap: vpr.Exp)(pos: vpr.Position = vpr.NoPosition, info: vpr.Info = vpr.NoInfo, errT: vpr.ErrorTrafo = vpr.NoTrafos) : vpr.DomainFuncApp = {
     generateDomain = true
     vpr.DomainFuncApp(
       func = smake_func,
-      args = Vector(arr, off, len, cap),
-      typVarMap = arr.typ.asInstanceOf[vpr.DomainType].typVarsMap
+      args = Vector(len, cap),
+      typVarMap = domainType.typVarsMap
+    )(pos, info, errT)
+  }
+
+  /** A function application of "sfirst". */
+  def first(r: vpr.Exp)(pos: vpr.Position = vpr.NoPosition, info: vpr.Info = vpr.NoInfo, errT: vpr.ErrorTrafo = vpr.NoTrafos) : vpr.DomainFuncApp = {
+    generateDomain = true
+    val typeVar = vpr.TypeVar("T")
+    val typeVarMap = Map(typeVar -> typeVar)
+    vpr.DomainFuncApp(
+      func = sfirst_func,
+      args = Vector(r),
+      typVarMap = typeVarMap
+    )(pos, info, errT)
+  }
+
+  /** A function application of "ssecond". */
+  def second(r: vpr.Exp)(pos: vpr.Position = vpr.NoPosition, info: vpr.Info = vpr.NoInfo, errT: vpr.ErrorTrafo = vpr.NoTrafos): vpr.DomainFuncApp = {
+    generateDomain = true
+    val typeVar = vpr.TypeVar("T")
+    val typeVarMap = Map(typeVar -> typeVar)
+    vpr.DomainFuncApp(
+      func = ssecond_func,
+      args = Vector(r),
+      typVarMap = typeVarMap
     )(pos, info, errT)
   }
 
