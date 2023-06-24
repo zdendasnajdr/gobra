@@ -27,6 +27,8 @@ object SyntacticCheck extends InternalTransform {
     in.Program(
       types = p.types,
       members = p.members.map(m => m.transform {
+        case in.IndexedExp(in.Slice(sbase, low, _, _, _), index, baseUnderlyingType) =>
+          in.IndexedExp(sbase, in.Add(low, index)(m.info), baseUnderlyingType)(m.info)
         case in.Slice(_, _, _, _, _) =>
           m.withInfo(createAnnotatedInfo(m.info))
       }),
