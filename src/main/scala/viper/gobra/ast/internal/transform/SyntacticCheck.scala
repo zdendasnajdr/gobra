@@ -9,6 +9,7 @@ package viper.gobra.ast.internal.transform
 import viper.gobra.ast.{internal => in}
 import viper.gobra.reporting.Source
 import viper.gobra.reporting.Source.SlicingExpressionAnnotation
+//import viper.gobra.theory.Addressability
 import viper.gobra.reporting.Source.Parser.Single
 import viper.gobra.util.Violation.violation
 
@@ -20,9 +21,27 @@ object SyntacticCheck extends InternalTransform {
   override def name(): String = "syntactic_check_for_slices"
 
   /**
-    * Program-to-program transformation
-    */
-  override def transform(p: in.Program): in.Program = p match {
+   * Program-to-program transformation
+   */
+  override def transform(p: in.Program): in.Program = {
+    in.Program(
+      types = p.types,
+      members = p.members.map(m => m.transform {
+        case in.Slice(_, _, _, _, _) =>
+          m.withInfo(createAnnotatedInfo(m.info))
+      }),
+      table = p.table,
+    )(p.info)
+  }
+
+  def createAnnotatedInfo(info: Source.Parser.Info): Source.Parser.Info =
+    info match {
+      case s: Single => s.createAnnotatedInfo(SlicingExpressionAnnotation)
+      case i => violation(s"l.op.info ($i) is expected to be a Single")
+    }
+
+    /*
+    p match {
     case in.Program(_, members, _) =>
 
       def checkBody(m: in.Member): Unit = m match {
@@ -54,7 +73,6 @@ object SyntacticCheck extends InternalTransform {
           case in.Slice(_, _, _, _, _) => slice = true
           case _ =>
         }
-        println(e.toString)
         slice
       }
 
@@ -70,17 +88,16 @@ object SyntacticCheck extends InternalTransform {
         case _ => false
       }
 
-      def createAnnotatedInfo(info: Source.Parser.Info): Source.Parser.Info =
-        info match {
-          case s: Single => s.createAnnotatedInfo(SlicingExpressionAnnotation)
-          case i => violation(s"l.op.info ($i) is expected to be a Single")
-        }
+
 
       //val newP = innerTransform(p)
       members.foreach(checkBody)
       p
   }
 
+     */
+
+  /*
   private def innerTransform(p: in.Program): in.Program =
       in.Program(
         types = p.types,
@@ -90,4 +107,26 @@ object SyntacticCheck extends InternalTransform {
         }),
         table = p.table,
       )(p.info)
+
+   */
+
+  /*
+  private def precons(p: in.Program): in.Program =
+    in.Program(
+      types = p.types,
+      members = p.members.map(member => member.transform {
+        case member: in.Function =>
+          member.args.foreach(arg => arg.typ match {
+            case in.SliceT(_, Addressability.Shared) =>
+              println("Slices might alias")
+              member
+            case _ =>
+          })
+          println("Slices cannot alias")
+          member
+      }),
+      table = p.table
+    )(p.info)
+
+   */
 }
