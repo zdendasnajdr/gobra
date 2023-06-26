@@ -30,7 +30,9 @@ object SyntacticCheck extends InternalTransform {
         case in.IndexedExp(in.Slice(sbase, low, _, _, _), index, baseUnderlyingType) =>
           in.IndexedExp(sbase, in.Add(low, index)(m.info), baseUnderlyingType)(m.info)
         case in.Slice(_, _, _, _, _) =>
-          m.withInfo(createAnnotatedInfo(m.info))
+          //m.withInfo(createAnnotatedInfo(m.info))
+          m.Annotation.setSlices(0)
+          m
       }),
       table = p.table,
     )(p.info)

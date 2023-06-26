@@ -141,6 +141,14 @@ trait Node extends Rewritable with Product {
     if (replacements.isEmpty) this
     else this.transform { case t: N if replacements.contains(t) => replacements(t) }
 
+
+  object Annotation {
+    var slices: Integer = 1
+
+    def setSlices(i: Integer): Unit = {
+      this.slices = i
+    }
+  }
 }
 
 object Node {
